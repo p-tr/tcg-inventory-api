@@ -3,14 +3,14 @@ const argon2 = require('argon2')
 
 const usersApi = express()
 
-const { models } = require('@@db')
+const { useModels } = require('@@db')
 
 const { authorize } = require('@@lib/session')
 
 module.exports = { usersApi }
 
 usersApi.post('/', authorize({ role: 'guest' }), async (req, res, next) => {
-    const { User } = models()
+    const { User } = useModels()
 
     let status = 201 // 201 CREATED
 

@@ -23,9 +23,9 @@ async function init() {
     return { Extension, Card, User }
 }
 
-function models() {
+function useuseModels() {
     return { Extension, Card, User }
 }
 
-module.exports = { init, models }
+module.exports = { init, useModels }
 

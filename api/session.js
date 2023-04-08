@@ -2,14 +2,14 @@ const express = require('express')
 const argon2 = require('argon2')
 const jwt = require('jsonwebtoken')
 
-const { models } = require('@@db')
+const { useModels } = require('@@db')
 const { authorize } = require('@@lib/session')
 const { 
     AccountNotFoundError,
     LoginFailedError
 } = require('@@lib/errors')
 
-const { schema } = require('@@lib/schema')
+const { ajv } = require('@@lib/validators')
 
 const { SECRET, SESSION_COOKIE } = process.env
 
@@ -17,7 +17,7 @@ const sessionApi = express()
 
 module.exports = { sessionApi }
 
-const validateLoginRequest = schema({
+const validateLoginRequest = ajv.createValidator({
     type: "object",
     properties: {
         email: {
@@ -33,7 +33,7 @@ const validateLoginRequest = schema({
 })
 
 sessionApi.post('/', [ validateLoginRequest ], async (req, res, next) => {
-    const { User } = models()
+    const { User } = useModels()
     const { email, password } = req.body
 
     try {
