@@ -23,7 +23,7 @@ async function init() {
     return { Extension, Card, User }
 }
 
-function useuseModels() {
+function useModels() {
     return { Extension, Card, User }
 }
 
