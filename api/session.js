@@ -11,7 +11,13 @@ const {
 
 const { ajv } = require('@@lib/validators')
 
-const { SECRET, SESSION_COOKIE } = process.env
+const { 
+    JWT_SECRET, 
+    SESSION_COOKIE,
+    REFRESH_COOKIE,
+    AUTHORIZATION_TOKEN_EXPIRATION = "30m",
+    REFRESH_TOKEN_EXPIRATION = "12h"
+} = process.env
 
 const sessionApi = express()
 
@@ -41,18 +47,24 @@ sessionApi.post('/', [ validateLoginRequest ], async (req, res, next) => {
     
         if(user) {
             const ok = await argon2.verify(user.password, password)
-            const expiresIn = "1d"
 
             if(ok) {
                 // génération du JWT ici
-                const token = jwt.sign({ sub: email }, SECRET, { expiresIn })
+                const token = jwt.sign({ sub: email }, JWT_SECRET, { 
+                    expiresIn: AUTHORIZATION_TOKEN_EXPIRATION 
+                })
+                
+                const refreshToken = jwt.sign({ sub: email, refresh: true }, JWT_SECRET, {
+                    expiresIn: REFRESH_TOKEN_EXPIRATION
+                })
 
                 // puis renvoi du JWT
                 // Le JWT doit être transmis à la fois dans le corps de 
                 // la réponse et dans un cookie
                 res.status(201)
                     .cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: true })
-                    .json({ token })
+                    .cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, sameSite: true })
+                    .json({ token, refreshToken })
             } else {
                 throw new LoginFailedError()
             }
@@ -60,7 +72,41 @@ sessionApi.post('/', [ validateLoginRequest ], async (req, res, next) => {
             throw new AccountNotFoundError()
         }
     } catch(err) {
-        debugger
+        next(err)
+    }
+})
+
+sessionApi.put('/', async(req, res, next) => {
+    try {
+        if(!req.session.user) {
+            // authentification sur la base du refresh token uniquement si l'authentification
+            // "tacite" du middleware session() a échoué.
+            await req.session.authenticate({ refresh: true })
+        }
+    
+        if(!req.session.user) {
+            // On lève l'exception InvalidTokenError ou autre si jamais à ce point la session
+            // n'est pas authentifiée.
+            throw req.session.error
+        }
+
+        const { email } = req.session.user
+
+        // refresh de la session ici
+        const token = jwt.sign({ sub: email }, JWT_SECRET, {
+            expiresIn: AUTHORIZATION_TOKEN_EXPIRATION
+        })
+
+        const refreshToken = jwt.sign({ sub: email, refresh: true }, JWT_SECRET, {
+            expiresIn: REFRESH_TOKEN_EXPIRATION
+        })
+
+        res.status(200)
+            .cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: true })
+            .cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, sameSite: true })
+            .json({ token, refreshToken })
+
+    } catch(err) {
         next(err)
     }
 })
@@ -71,5 +117,5 @@ sessionApi.get('/', authorize(), async (req, res, next) => {
 })
 
 sessionApi.delete('/', authorize(), (req, res) => {
-    res.clearCookie(SESSION_COOKIE).status(204).end()
+    res.clearCookie(SESSION_COOKIE).clearCookie(REFRESH_COOKIE).status(204).end()
 })
