@@ -1,3 +1,5 @@
+const crypto = require('crypto')
+
 const express = require('express')
 const argon2 = require('argon2')
 const jwt = require('jsonwebtoken')
@@ -50,7 +52,9 @@ sessionApi.post('/', [ validateLoginRequest ], async (req, res, next) => {
 
             if(ok) {
                 // génération du JWT ici
-                const token = jwt.sign({ sub: email }, JWT_SECRET, { 
+                const xsrf = crypto.randomUUID()
+
+                const token = jwt.sign({ sub: email, xsrf }, JWT_SECRET, { 
                     expiresIn: AUTHORIZATION_TOKEN_EXPIRATION 
                 })
                 
@@ -64,7 +68,7 @@ sessionApi.post('/', [ validateLoginRequest ], async (req, res, next) => {
                 res.status(201)
                     .cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: true })
                     .cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, sameSite: true })
-                    .json({ token, refreshToken })
+                    .json({ token, refreshToken, xsrf })
             } else {
                 throw new LoginFailedError()
             }
@@ -91,9 +95,10 @@ sessionApi.put('/', async(req, res, next) => {
         }
 
         const { email } = req.session.user
+        const xsrf = crypto.randomUUID()
 
         // refresh de la session ici
-        const token = jwt.sign({ sub: email }, JWT_SECRET, {
+        const token = jwt.sign({ sub: email, xsrf }, JWT_SECRET, {
             expiresIn: AUTHORIZATION_TOKEN_EXPIRATION
         })
 
@@ -104,7 +109,7 @@ sessionApi.put('/', async(req, res, next) => {
         res.status(200)
             .cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: true })
             .cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, sameSite: true })
-            .json({ token, refreshToken })
+            .json({ token, refreshToken, xsrf })
 
     } catch(err) {
         next(err)
@@ -112,8 +117,9 @@ sessionApi.put('/', async(req, res, next) => {
 })
 
 sessionApi.get('/', authorize(), async (req, res, next) => {
+    const xsrf = req.session.xsrf
     const { _id, email } = req.session.user
-    res.status(200).json({ user: { _id, email }})
+    res.status(200).json({ user: { _id, email }, xsrf })
 })
 
 sessionApi.delete('/', authorize(), (req, res) => {
