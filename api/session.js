@@ -118,8 +118,8 @@ sessionApi.put('/', async(req, res, next) => {
 
 sessionApi.get('/', authorize(), async (req, res, next) => {
     const xsrf = req.session.xsrf
-    const { _id, email } = req.session.user
-    res.status(200).json({ user: { _id, email }, xsrf })
+    const { _id, email, role } = req.session.user
+    res.status(200).json({ user: { _id, email, role }, xsrf })
 })
 
 sessionApi.delete('/', authorize(), (req, res) => {
