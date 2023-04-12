@@ -4,12 +4,12 @@ const argon2 = require('argon2')
 const usersApi = express()
 
 const { useModels } = require('@@db')
-
+const { UniqueConstraintViolationError } = require('@@lib/errors')
 const { authorize } = require('@@lib/session')
 
 module.exports = { usersApi }
 
-usersApi.post('/', authorize({ role: 'guest' }), async (req, res, next) => {
+usersApi.post('/', authorize({ role: 'admin' }), async (req, res, next) => {
     const { User } = useModels()
 
     let status = 201 // 201 CREATED
@@ -24,15 +24,15 @@ usersApi.post('/', authorize({ role: 'guest' }), async (req, res, next) => {
             _id: user._id, email, role: user.role 
         })
     } catch(error) {
-        // l'erreur est-elle liée à un duplicate error ? Si oui
-        // le statut HTTP sera 409 CONFLICT
-        if(error.code == 11000 && error.name == "MongoServerError") {
-            error.httpStatus = 409
+        if(error.name == "MongoServerError") {
+            if(error.code == 11000) {
+                err = new UniqueConstraintViolationError(error)
+            }
         } else {
-            error.httpStatus = 503
+            err = error
         }
 
-        next(error)
+        next(err)
     }
 })
 
