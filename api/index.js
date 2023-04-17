@@ -24,7 +24,7 @@ api.use([
     accepts('json'),
     mediaType('json'),
     session(),
-    tokenBucket({ limit: 5, period: 60 })
+    //tokenBucket({ limit: 5, period: 60 })
 ])
 
 api.use('/users', usersApi)
@@ -46,6 +46,8 @@ api.use((error, req, res, next) => {
     } else {
         status = 500
         data = error
+
+        console.error(error)
     }
 
     res.status(status).json(data)

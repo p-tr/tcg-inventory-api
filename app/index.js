@@ -10,6 +10,12 @@ const {
     disableXPoweredByHeader 
 } = require('@@lib')
 
+const {
+    NODE_ENV
+} = process.env
+
+const testing = (NODE_ENV == 'test')
+
 const app = express()
 
 module.exports = app;
@@ -22,9 +28,12 @@ disableXPoweredByHeader([
 
 app.use([
     helmet(),
-    morgan('tiny'),
     cp()
 ])
+
+if(!testing) {
+    app.use(morgan('tiny'))
+}
 
 app.use('/hello', helloApp)
 app.use('/api', api)

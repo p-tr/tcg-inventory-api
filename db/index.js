@@ -1,5 +1,5 @@
 // db/index.js
 
-const { init, useModels } = require('./models')
+const { init, close, useModels } = require('./models')
 
-module.exports = { init, useModels }
+module.exports = { init, close, useModels }

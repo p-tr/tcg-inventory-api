@@ -23,9 +23,13 @@ async function init() {
     return { Extension, Card, User }
 }
 
+async function close() {
+    _db.disconnect()
+}
+
 function useModels() {
     return { Extension, Card, User }
 }
 
-module.exports = { init, useModels }
+module.exports = { init, useModels, close }
 
