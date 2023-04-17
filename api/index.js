@@ -9,10 +9,14 @@ const { session } = require('@@lib/session')
 const { APIError } = require('@@lib/errors')
 
 const { accepts, mediaType } = require('@@lib/middlewares')
+const { tokenBucket } = require('@@lib/rate-limiting')
 
 const api = express()
 
 module.exports = { api }
+
+// permet la récupération de l'adresse IP du client
+api.enable('trust proxy')
 
 api.use([
     cors(),
@@ -20,6 +24,7 @@ api.use([
     accepts('json'),
     mediaType('json'),
     session(),
+    tokenBucket({ limit: 5, period: 60 })
 ])
 
 api.use('/users', usersApi)

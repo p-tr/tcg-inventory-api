@@ -77,7 +77,7 @@ function userAccessControl(req, res, next) {
     // req.user contient l'utilisateur cible
     // req.session.user contient l'utilisateur courant
     try {
-        const ok = (req.session.user.role == "admin") || req.session.user._id.equals(req.user._id)
+        const ok = (req.session?.user?.role == "admin") || req.session?.user?._id.equals(req.user?._id)
 
         if(! ok) {
             throw new ProtectionError()
